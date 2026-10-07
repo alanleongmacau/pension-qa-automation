@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provident Fund Back Office</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --ink: #1d2733; --muted: #5f6b78;
+    --line: #dde3e9; --brand: #9b1c1f; --ok: #1f7a4d; --err: #b42318;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  header { background: var(--brand); color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  button { margin-top: 14px; padding: 9px 16px; border: 0; border-radius: 6px; background: var(--brand); color: #fff; font-size: 14px; cursor: pointer; }
+  button.secondary { background: transparent; border: 1px solid #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stat { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+  .stat span { display: block; font-size: 12px; color: var(--muted); }
+  .stat strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 14px; }
+  .msg.ok { background: #e7f5ee; color: var(--ok); }
+  .msg.err { background: #fdecea; color: var(--err); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .hidden { display: none; }
+  .login { max-width: 380px; margin: 60px auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Provident Fund Back Office</h1>
+  <div id="session" class="hidden">
+    <span data-testid="current-user"></span>
+    <button class="secondary" data-testid="logout-button" id="logout">Log out</button>
+  </div>
+</header>
+
+<main>
+  <!-- Login -->
+  <section id="login-view" class="card login">
+    <h2>Sign in</h2>
+    <form id="login-form">
+      <label for="username">Username</label>
+      <input id="username" data-testid="username" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" type="password" data-testid="password" autocomplete="current-password">
+      <button type="submit" data-testid="login-button">Sign in</button>
+    </form>
+    <div id="login-msg" data-testid="login-message" class="msg hidden" role="alert"></div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="app-view" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h2>Register member</h2>
+        <form id="member-form">
+          <label for="m-name">Full name</label>
+          <input id="m-name" data-testid="member-name">
+          <label for="m-id">ID number</label>
+          <input id="m-id" data-testid="member-id-number" placeholder="1234567(8)">
+          <label for="m-dob">Date of birth</label>
+          <input id="m-dob" type="date" data-testid="member-dob">
+          <label for="m-email">Email</label>
+          <input id="m-email" data-testid="member-email">
+          <button type="submit" data-testid="member-submit">Register</button>
+        </form>
+        <div id="member-msg" data-testid="member-message" class="msg hidden" role="alert"></div>
+      </div>
+
+      <div class="card">
+        <h2>Record contribution</h2>
+        <form id="contrib-form">
+          <label for="c-member">Member</label>
+          <select id="c-member" data-testid="contrib-member"></select>
+          <label for="c-period">Period (YYYY-MM)</label>
+          <input id="c-period" data-testid="contrib-period" placeholder="2026-09">
+          <label for="c-type">Contributor</label>
+          <select id="c-type" data-testid="contrib-type">
+            <option value="employee">Employee</option>
+            <option value="employer">Employer</option>
+          </select>
+          <label for="c-amount">Amount (MOP)</label>
+          <input id="c-amount" data-testid="contrib-amount" inputmode="decimal">
+          <button type="submit" data-testid="contrib-submit">Record</button>
+        </form>
+        <div id="contrib-msg" data-testid="contrib-message" class="msg hidden" role="alert"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Account summary <span data-testid="summary-member" style="color:var(--muted);font-weight:400"></span></h2>
+      <div class="stats">
+        <div class="stat"><span>Employee</span><strong data-testid="employee-total">0.00</strong></div>
+        <div class="stat"><span>Employer</span><strong data-testid="employer-total">0.00</strong></div>
+        <div class="stat"><span>Withdrawn</span><strong data-testid="withdrawn-total">0.00</strong></div>
+        <div class="stat"><span>Balance (MOP)</span><strong data-testid="balance">0.00</strong></div>
+      </div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Period</th><th>Contributor</th><th class="num">Amount</th></tr></thead>
+        <tbody data-testid="contrib-rows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let token = null;
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const fmt = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function show(el, text, ok) {
+    el.textContent = text;
+    el.className = "msg " + (ok ? "ok" : "err");
+  }
+
+  function errorText(body) {
+    if (!body || body.detail === undefined) return "Request failed";
+    if (typeof body.detail === "string") return body.detail;
+    return body.detail.map((d) => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join("; ");
+  }
+
+  async function api(path, opts = {}) {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    const res = await fetch(path, { ...opts, headers });
+    const body = res.status === 204 ? null : await res.json();
+    return { ok: res.ok, status: res.status, body };
+  }
+
+  async function refreshMembers(selectId) {
+    const { body } = await api("/members");
+    const sel = $("c-member");
+    sel.innerHTML = body.map((m) => `<option value="${esc(m.member_id)}">${esc(m.member_id)} — ${esc(m.full_name)}</option>`).join("");
+    if (selectId) sel.value = selectId;
+    await refreshSummary();
+  }
+
+  async function refreshSummary() {
+    const id = $("c-member").value;
+    document.querySelector('[data-testid="summary-member"]').textContent = id ? "· " + id : "";
+    if (!id) return;
+    const [bal, rows] = await Promise.all([api(`/members/${id}/balance`), api(`/members/${id}/contributions`)]);
+    document.querySelector('[data-testid="employee-total"]').textContent = fmt(bal.body.employee_total);
+    document.querySelector('[data-testid="employer-total"]').textContent = fmt(bal.body.employer_total);
+    document.querySelector('[data-testid="withdrawn-total"]').textContent = fmt(bal.body.withdrawn_total);
+    document.querySelector('[data-testid="balance"]').textContent = fmt(bal.body.balance);
+    document.querySelector('[data-testid="contrib-rows"]').innerHTML = rows.body
+      .map((c) => `<tr data-testid="contrib-row"><td>${esc(c.period)}</td><td>${esc(c.contributor)}</td><td class="num">${fmt(c.amount)}</td></tr>`)
+      .join("");
+  }
+
+  $("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const res = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username: $("username").value, password: $("password").value }),
+    });
+    if (!res.ok) return show($("login-msg"), errorText(res.body), false);
+    token = res.body.access_token;
+    document.querySelector('[data-testid="current-user"]').textContent = res.body.username;
+    $("login-view").classList.add("hidden");
+    $("app-view").classList.remove("hidden");
+    $("session").classList.remove("hidden");
+    await refreshMembers();
+  });
+
+  $("logout").addEventListener("click", async () => {
+    await api("/auth/logout", { method: "POST" });
+    token = null;
+    $("app-view").classList.add("hidden");
+    $("session").classList.add("hidden");
+    $("login-view").classList.remove("hidden");
+    $("login-msg").className = "msg hidden";
+    $("password").value = "";
+  });
+
+  $("member-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const res = await api("/members", {
+      method: "POST",
+      body: JSON.stringify({
+        full_name: $("m-name").value,
+        id_number: $("m-id").value,
+        date_of_birth: $("m-dob").value || null,
+        email: $("m-email").value,
+      }),
+    });
+    if (!res.ok) return show($("member-msg"), errorText(res.body), false);
+    show($("member-msg"), `Member ${res.body.member_id} registered`, true);
+    e.target.reset();
+    await refreshMembers(res.body.member_id);
+  });
+
+  $("contrib-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const res = await api("/contributions", {
+      method: "POST",
+      body: JSON.stringify({
+        member_id: $("c-member").value,
+        period: $("c-period").value,
+        contributor: $("c-type").value,
+        amount: Number($("c-amount").value),
+      }),
+    });
+    if (!res.ok) return show($("contrib-msg"), errorText(res.body), false);
+    show($("contrib-msg"), `Contribution ${res.body.contribution_id} recorded`, true);
+    $("c-amount").value = "";
+    await refreshSummary();
+  });
+
+  $("c-member").addEventListener("change", refreshSummary);
+</script>
+</body>
+</html>

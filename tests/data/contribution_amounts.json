@@ -1,0 +1,15 @@
+{
+  "_comment": "Boundary-value and equivalence-partition cases for business rule R3 (0 < amount <= 100,000.00 MOP).",
+  "cases": [
+    {"id": "min-valid",          "amount": 0.01,      "expected_status": 201},
+    {"id": "typical",            "amount": 2500,      "expected_status": 201},
+    {"id": "two-decimals",       "amount": 1234.56,   "expected_status": 201},
+    {"id": "max-valid",          "amount": 100000,    "expected_status": 201},
+    {"id": "just-above-max",     "amount": 100000.01, "expected_status": 422},
+    {"id": "far-above-max",      "amount": 1000000,   "expected_status": 422},
+    {"id": "zero",               "amount": 0,         "expected_status": 422},
+    {"id": "negative",           "amount": -100,      "expected_status": 422},
+    {"id": "string",             "amount": "abc",     "expected_status": 422},
+    {"id": "null",               "amount": null,      "expected_status": 422}
+  ]
+}

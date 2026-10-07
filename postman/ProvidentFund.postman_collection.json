@@ -1,0 +1,741 @@
+{
+  "info": {
+    "name": "Provident Fund API - Regression",
+    "description": "Regression suite for the Provident Fund Demo API. Run with Newman:\n\nnpx newman run postman/ProvidentFund.postman_collection.json -e postman/local.postman_environment.json",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('service is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+                  "pm.test('responds within 500 ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - valid credentials",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns bearer token', () => {",
+                  "  pm.expect(body.token_type).to.eql('bearer');",
+                  "  pm.expect(body.access_token).to.be.a('string').and.have.length.above(19);",
+                  "});",
+                  "pm.collectionVariables.set('token', body.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - wrong password is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('no token leaked', () => pm.expect(pm.response.text()).not.to.include('access_token'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected endpoint without token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Members",
+      "item": [
+        {
+          "name": "Register member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Postman Member\",\n  \"id_number\": \"{{idNumber}}\",\n  \"date_of_birth\": \"1985-06-15\",\n  \"email\": \"postman@example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique synthetic ID in Macao resident format, e.g. 1234567(8)",
+                  "const digits = '1' + String(Math.floor(Math.random() * 1e6)).padStart(6, '0');",
+                  "pm.collectionVariables.set('idNumber', `${digits}(${Math.floor(Math.random() * 10)})`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"member_id\", \"full_name\", \"id_number\", \"date_of_birth\", \"email\", \"status\", \"created_at\"], \"properties\": {\"member_id\": {\"type\": \"string\", \"pattern\": \"^M\\\\d{5}$\"}, \"status\": {\"enum\": [\"active\", \"suspended\", \"closed\"]}}};",
+                  "pm.test('matches member schema', () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test('echoes ID number', () => pm.expect(pm.response.json().id_number).to.eql(pm.collectionVariables.get('idNumber')));",
+                  "pm.collectionVariables.set('memberId', pm.response.json().member_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register duplicate ID number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Duplicate\",\n  \"id_number\": \"{{idNumber}}\",\n  \"date_of_birth\": \"1985-06-15\",\n  \"email\": \"dup@example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409 conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register under-age member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Too Young\",\n  \"id_number\": \"1999999(9)\",\n  \"date_of_birth\": \"{{under18Dob}}\",\n  \"email\": \"young@example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date(); d.setFullYear(d.getFullYear() - 17);",
+                  "pm.collectionVariables.set('under18Dob', d.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('explains the age rule', () => pm.expect(pm.response.json().detail).to.include('18'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get member",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('correct member', () => pm.expect(pm.response.json().member_id).to.eql(pm.collectionVariables.get('memberId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get unknown member",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/M99999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "M99999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Contributions & Balance",
+      "item": [
+        {
+          "name": "Record employee contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contributions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contributions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{memberId}}\",\n  \"period\": \"{{lastMonth}}\",\n  \"contributor\": \"employee\",\n  \"amount\": 1500\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);",
+                  "pm.collectionVariables.set('lastMonth', d.toISOString().slice(0, 7));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('recorded by current user', () => pm.expect(pm.response.json().recorded_by).to.eql(pm.environment.get('username') || pm.collectionVariables.get('username')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record employer contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contributions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contributions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{memberId}}\",\n  \"period\": \"{{lastMonth}}\",\n  \"contributor\": \"employer\",\n  \"amount\": 2250.5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate contribution is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contributions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contributions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{memberId}}\",\n  \"period\": \"{{lastMonth}}\",\n  \"contributor\": \"employee\",\n  \"amount\": 1500\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Amount above maximum is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contributions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contributions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{memberId}}\",\n  \"period\": \"{{lastMonth}}\",\n  \"contributor\": \"employee\",\n  \"amount\": 100000.01\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}",
+                "balance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('totals are correct', () => {",
+                  "  pm.expect(b.employee_total).to.eql(1500);",
+                  "  pm.expect(b.employer_total).to.eql(2250.5);",
+                  "  pm.expect(b.balance).to.eql(3750.5);",
+                  "  pm.expect(b.currency).to.eql('MOP');",
+                  "});",
+                  "pm.test('balance = employee + employer - withdrawn', () =>",
+                  "  pm.expect(b.balance).to.be.closeTo(b.employee_total + b.employer_total - b.withdrawn_total, 0.001));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdrawal before age 65 is forbidden",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}/withdrawals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}",
+                "withdrawals"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Risk & Audit",
+      "item": [
+        {
+          "name": "Risk score - large cross-border transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/risk/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "risk",
+                "score"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 80000,\n  \"is_cross_border\": true,\n  \"txn_count_24h\": 1,\n  \"account_age_days\": 2000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('score in [0,1]', () => pm.expect(r.score).to.be.within(0, 1));",
+                  "pm.test('is flagged', () => pm.expect(r.flagged).to.be.true);",
+                  "pm.test('flag consistent with 0.5 threshold', () => pm.expect(r.flagged).to.eql(r.score >= 0.5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Risk score - routine contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/risk/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "risk",
+                "score"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 3000,\n  \"is_cross_border\": false,\n  \"txn_count_24h\": 1,\n  \"account_age_days\": 1000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('is not flagged', () => pm.expect(pm.response.json().flagged).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit log records the run",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audit-log",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit-log"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const events = pm.response.json().map(e => e.event);",
+                  "pm.test('member creation audited', () => pm.expect(events).to.include('MEMBER_CREATED'));",
+                  "pm.test('contribution audited', () => pm.expect(events).to.include('CONTRIBUTION_CREATED'));",
+                  "pm.test('password never logged', () => pm.expect(pm.response.text()).not.to.include('wrong-password'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "memberId",
+      "value": ""
+    },
+    {
+      "key": "idNumber",
+      "value": ""
+    },
+    {
+      "key": "lastMonth",
+      "value": ""
+    },
+    {
+      "key": "under18Dob",
+      "value": ""
+    }
+  ]
+}
